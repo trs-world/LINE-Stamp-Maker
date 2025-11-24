@@ -168,8 +168,42 @@ def add_white_outline(img: Image.Image, thickness: int = 2) -> Image.Image:
     return img
 
 
-def split_to_stamps(input_file: str) -> None:
-    """入力ファイルを読み込み、背景透過 + 3×4 に分割して PNG で保存"""
+def check_even_output(start_index: int, count: int = ROWS * COLS) -> None:
+    all_even = True
+    for idx in range(start_index, start_index + count):
+        filename = f"{idx:02d}.png"
+        path = os.path.join(OUTPUT_DIR, filename)
+
+        if not os.path.exists(path):
+            print(f"[SIZE CHECK] Missing file: {path}")
+            all_even = False
+            continue
+
+        try:
+            with Image.open(path) as im:
+                w, h = im.size
+                if (w % 2 != 0) or (h % 2 != 0):
+                    print(f"[SIZE CHECK] NG: {path} -> {w}x{h} (odd size)")
+                    all_even = False
+                else:
+                    print(f"[SIZE CHECK] OK: {path} -> {w}x{h}")
+        except Exception as e:
+            print(f"[SIZE CHECK] Error reading {path}: {e}")
+            all_even = False
+
+    if all_even:
+        print("[SIZE CHECK] All output stamp images have even width and height.")
+    else:
+        print("[SIZE CHECK] There are output images with odd sizes or missing files.")
+
+
+def split_to_stamps(input_file: str, start_index: int = 1) -> None:
+    """入力ファイルを読み込み、背景透過 + 3×4 に分割して PNG で保存
+
+    start_index によって出力ファイル名の開始番号を制御する。
+    例: start_index=1  -> 01.png〜12.png
+        start_index=13 -> 13.png〜24.png
+    """
     if not os.path.exists(input_file):
         raise FileNotFoundError(f"{input_file} が見つかりません。このスクリプトと同じフォルダに配置してください。")
 
@@ -181,7 +215,7 @@ def split_to_stamps(input_file: str) -> None:
     cell_w = width // COLS
     cell_h = height // ROWS
 
-    index = 1
+    index = start_index
     for row in range(ROWS):
         for col in range(COLS):
             left = col * cell_w
@@ -197,14 +231,24 @@ def split_to_stamps(input_file: str) -> None:
             print(f"saved: {out_path}")
             index += 1
 
+    check_even_output(start_index, ROWS * COLS)
+
 
 if __name__ == "__main__":
     # 使い方:
-    #   python split_line_stamp.py           -> DEFAULT_INPUT_FILE (1.png) を使用
-    #   python split_line_stamp.py 2.png    -> 2.png を使用
+    #   python split_line_stamp.py                -> 1.png を 01〜12.png で出力
+    #   python split_line_stamp.py 2.png         -> 2.png を 01〜12.png で出力
+    #   python split_line_stamp.py 2.png 2       -> 2.png を 13〜24.png で出力
+
     if len(sys.argv) >= 2:
         input_file = sys.argv[1]
     else:
         input_file = DEFAULT_INPUT_FILE
 
-    split_to_stamps(input_file)
+    # 第2引数が "2" のときだけ、13〜24番で出力する
+    if len(sys.argv) >= 3 and sys.argv[2] == "2":
+        start_index = 13
+    else:
+        start_index = 1
+
+    split_to_stamps(input_file, start_index=start_index)
