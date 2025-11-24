@@ -1,0 +1,11 @@
+①画像を12種類に分割
+python split_line_stamp.py 1.png 
+
+
+②メイン画像をタブ画像を決めてmain-tabフォルダに画像を2つコピーして配置
+
+
+③python make_main_tab.py
+
+
+④全部まとめてzipファイルにする
